@@ -37,19 +37,32 @@ func dispatch(command: LCCommand) -> Variant:
 	var executor = _executors.get(target_str)
 	
 	if not executor:
-		# Fallback: try to find it in group if not registered (e.g., if it was just spawned)
-		var group_nodes = get_tree().get_nodes_in_group("CommandExecutors")
-		# print("Debug: Dispatching to '%s'. Executors registered: %d. Group size: %d" % [target_str, _executors.size(), group_nodes.size()])
+		# 1. Try numeric resolution (instance_id)
+		if target_str.is_valid_int():
+			var instance_id = int(target_str)
+			var target_node = instance_from_id(instance_id) as Node
+			if is_instance_valid(target_node):
+				# Find executor on this node or its descendants
+				var found = _find_executors_recursive(target_node)
+				if not found.is_empty():
+					executor = found[0]
+					register_executor(executor)
+					print("Debug: Found executor via instance_id resolution for %s" % target_str)
 		
-		for e in group_nodes:
-			var parent_path = str(e.get_parent().get_path())
-			# print("Debug: Check fallback: %s vs %s (Parent)" % [target_str, parent_path])
+		# 2. Fallback: try to find it in group if not registered (e.g., if it was just spawned)
+		if not executor:
+			var group_nodes = get_tree().get_nodes_in_group("CommandExecutors")
+			# print("Debug: Dispatching to '%s'. Executors registered: %d. Group size: %d" % [target_str, _executors.size(), group_nodes.size()])
 			
-			if e.alias == target_str or str(e.get_path()) == target_str or parent_path == target_str:
-				executor = e
-				register_executor(e)
-				print("Debug: Found executor via fallback for %s" % target_str)
-				break
+			for e in group_nodes:
+				var parent_path = str(e.get_parent().get_path())
+				# print("Debug: Check fallback: %s vs %s (Parent)" % [target_str, parent_path])
+				
+				if e.alias == target_str or str(e.get_path()) == target_str or parent_path == target_str:
+					executor = e
+					register_executor(e)
+					print("Debug: Found executor via fallback for %s" % target_str)
+					break
 				
 	if executor:
 		return await executor.execute(command)
