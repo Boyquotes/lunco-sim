@@ -18,7 +18,9 @@ func _init(_name: String = "", _target_path: NodePath = ^"", _arguments: Diction
 static func from_dict(dict: Dictionary) -> LCCommand:
 	var cmd = LCCommand.new()
 	cmd.name = dict.get("name", "")
-	cmd.target_path = NodePath(dict.get("target_path", ""))
+	# Ensure target_path is converted to string to handle numeric IDs
+	var target = dict.get("target_path", "")
+	cmd.target_path = NodePath(str(target))
 	cmd.arguments = dict.get("arguments", {})
 	cmd.source = dict.get("source", "remote")
 	return cmd
