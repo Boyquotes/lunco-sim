@@ -62,6 +62,13 @@ func set_control_inputs(thrust: float, torque: Vector3):
 	thrust_input = thrust
 	torque_input = torque
 	
+	# Only dispatch controls if we have authority
+	# If we don't have authority, the replicated values will be applied in _physics_process
+	if is_multiplayer_authority():
+		_apply_control_inputs()
+
+## Apply control inputs to effectors (called either immediately or from _physics_process)
+func _apply_control_inputs():
 	# Route thrust
 	_dispatch_control("thrust", thrust_input)
 	
@@ -82,6 +89,9 @@ func get_telemetry_data() -> Dictionary:
 func _physics_process(delta):
 	# Only update if we have authority (for multiplayer)
 	if is_multiplayer_authority():
+		# Apply any replicated control inputs
+		_apply_control_inputs()
+		
 		if mass_properties_dirty:
 			_update_mass_properties()
 			
