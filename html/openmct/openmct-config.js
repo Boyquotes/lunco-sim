@@ -3,6 +3,7 @@
 // Detect if running locally or remotely
 const isLocal = window.location.hostname === 'localhost' ||
     window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '0.0.0.0' ||
     window.location.hostname === '';
 
 // Set API URL based on environment
@@ -21,6 +22,21 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('Initializing OpenMCT for LunCoSim...');
 
     // Initialize OpenMCT
+    if (typeof openmct === 'undefined') {
+        console.error('OpenMCT library failed to load. Please check your internet connection or CDN availability.');
+        const errorMsg = document.createElement('div');
+        errorMsg.style.color = 'white';
+        errorMsg.style.padding = '20px';
+        errorMsg.style.fontFamily = 'sans-serif';
+        errorMsg.innerHTML = `
+            <h2>OpenMCT Load Error</h2>
+            <p>The OpenMCT library could not be loaded from the CDN.</p>
+            <p>Please check your network connection or try using a different CDN in <code>index.html</code>.</p>
+        `;
+        document.body.appendChild(errorMsg);
+        return;
+    }
+
     openmct.setAssetPath('https://cdn.jsdelivr.net/npm/openmct@3.1.0/dist');
     openmct.install(openmct.plugins.LocalStorage());
     openmct.install(openmct.plugins.MyItems());
