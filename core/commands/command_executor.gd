@@ -41,14 +41,20 @@ func _exit_tree():
 
 ## Executes a command.
 func execute(command: LCCommand) -> Variant:
-	var method_name = "cmd_" + command.name.to_lower()
 	var parent = get_parent()
-	
 	if not parent:
 		var err = "Executor has no parent"
 		command_failed.emit(command, err)
 		return err
 		
+	# Multiplayer logic: Relay to authority if we are not the authority
+	if multiplayer.multiplayer_peer and not parent.is_multiplayer_authority():
+		var authority_id = parent.get_multiplayer_authority()
+		print("LCCommandExecutor: Relaying command '%s' to authority peer %d" % [command.name, authority_id])
+		rpc_id(authority_id, "rpc_execute", command.to_dict())
+		return "Relayed to authority"
+
+	var method_name = "cmd_" + command.name.to_lower()
 	if not parent.has_method(method_name):
 		var err = "Parent %s does not implement command method: %s" % [parent.name, method_name]
 		command_failed.emit(command, err)
@@ -72,6 +78,12 @@ func execute(command: LCCommand) -> Variant:
 	var result = await parent.callv(method_name, converted_args)
 	command_executed.emit(command, result)
 	return result
+
+@rpc("any_peer", "call_local", "reliable")
+func rpc_execute(command_dict: Dictionary):
+	var command = LCCommand.from_dict(command_dict)
+	print("LCCommandExecutor: Received RPC command: ", command.name)
+	execute(command)
 
 ## Returns a list of available commands based on methods prefixed with 'cmd_'.
 func get_command_dictionary() -> Array:

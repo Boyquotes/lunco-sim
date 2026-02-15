@@ -54,21 +54,22 @@ func _process(delta):
 		_update_mass_properties()
 
 # Control inputs
-var thrust_input: float = 0.0
-var torque_input: Vector3 = Vector3.ZERO
+var thrust_input: float = 0.0:
+	set(val):
+		thrust_input = val
+		_dispatch_control("thrust", thrust_input)
+
+var torque_input: Vector3 = Vector3.ZERO:
+	set(val):
+		torque_input = val
+		_dispatch_control("torque_pitch", torque_input.x)
+		_dispatch_control("torque_yaw", torque_input.y)
+		_dispatch_control("torque_roll", torque_input.z)
 
 ## Sets control inputs from controller
 func set_control_inputs(thrust: float, torque: Vector3):
 	thrust_input = thrust
 	torque_input = torque
-	
-	# Route thrust
-	_dispatch_control("thrust", thrust_input)
-	
-	# Route torque (pitch, yaw, roll)
-	_dispatch_control("torque_pitch", torque_input.x)
-	_dispatch_control("torque_yaw", torque_input.y)
-	_dispatch_control("torque_roll", torque_input.z)
 
 ## Dispatches a control signal to all registered effectors
 func _dispatch_control(action: String, value: float):
