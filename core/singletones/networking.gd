@@ -24,6 +24,19 @@ func _ready():
 	multiplayer.peer_connected.connect(on_peer_connected)
 	multiplayer.peer_disconnected.connect(on_peer_disconnected)
 
+	# Setting up signals to call relevant functions upon server connection status changes.
+	multiplayer.connection_failed.connect(on_server_connection_failed)
+	multiplayer.connected_to_server.connect(on_server_connected)
+	multiplayer.server_disconnected.connect(on_server_disconnected)
+	
+	Profile.profile_changed.connect(_on_profile_changed)
+	
+	# Setup reconnection timer
+	_setup_reconnect_timer()
+	
+	# Auto-connect if running on alpha.lunco.space
+	_check_auto_connect()
+
 var server_version: String = ""
 var server_git_hash: String = ""
 signal server_version_received(version: String, git_hash: String)
@@ -39,20 +52,6 @@ func _send_version_to_peer(peer_id: int):
 	var local_ver = str(ProjectSettings.get_setting("application/config/version"))
 	var local_hash = LCVersionHelper.get_git_hash() # Now using the singleton
 	receive_server_version.rpc_id(peer_id, local_ver, local_hash)
-
-
-	# Setting up signals to call relevant functions upon server connection status changes.
-	multiplayer.connection_failed.connect(on_server_connection_failed)
-	multiplayer.connected_to_server.connect(on_server_connected)
-	multiplayer.server_disconnected.connect(on_server_disconnected)
-	
-	Profile.profile_changed.connect(_on_profile_changed)
-	
-	# Setup reconnection timer
-	_setup_reconnect_timer()
-	
-	# Auto-connect if running on alpha.lunco.space
-	_check_auto_connect()
 
 # Load and setup TLS certificate for secure WSS connections
 func setup_tls(cert_path: String, key_path: String) -> TLSOptions:
@@ -177,6 +176,7 @@ func host(port: int = 9000, tls_cert_path: String = "", tls_key_path: String = "
 	
 	print("Server created successfully, error code: %d" % error)
 	multiplayer.multiplayer_peer = ws_peer
+	_set_connection_state("connected")
 
 #---------------------------------------------------
 @rpc("any_peer", "call_remote", "reliable")
